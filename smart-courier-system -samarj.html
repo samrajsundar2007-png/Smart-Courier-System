@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Courier System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F5F1E6;
+    --card:#FFFDF8;
+    --card-alt:#FBF7EC;
+    --ink:#1E2A26;
+    --ink-soft:#5B6660;
+    --navy:#1F3B57;
+    --navy-dark:#132A3F;
+    --kraft:#B5723A;
+    --kraft-dark:#8E5527;
+    --kraft-light:#F0DFC8;
+    --stamp-red:#A93226;
+    --stamp-red-bg:#F6E1DC;
+    --stamp-green:#2E6F52;
+    --stamp-green-bg:#E1EEE5;
+    --stamp-amber:#B4791E;
+    --stamp-amber-bg:#F6E9D2;
+    --line:#DCD2B8;
+    --line-strong:#C8BB99;
+    --radius:10px;
+    --shadow:0 1px 2px rgba(30,25,10,0.06), 0 6px 16px rgba(30,25,10,0.05);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(31,59,87,0.05) 1px, transparent 0);
+    background-size:22px 22px;
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+    min-height:100vh;
+  }
+
+  ::selection{ background:var(--kraft-light); }
+
+  /* ---------- LAYOUT SHELL ---------- */
+  .shell{
+    max-width:1180px;
+    margin:0 auto;
+    padding:28px 20px 60px;
+  }
+
+  /* ---------- HEADER ---------- */
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+    flex-wrap:wrap;
+    margin-bottom:26px;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .postmark{
+    width:52px;height:52px;border-radius:50%;
+    border:2.5px solid var(--navy);
+    display:flex;align-items:center;justify-content:center;
+    position:relative;
+    flex-shrink:0;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 3px, rgba(31,59,87,0.16) 3px 4px);
+  }
+  .postmark::before{
+    content:'';
+    position:absolute; inset:6px;
+    border:1px solid var(--navy);
+    border-radius:50%;
+  }
+  .postmark span{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:700; font-size:9px; letter-spacing:0.5px;
+    color:var(--navy); z-index:1;
+  }
+  .brand h1{
+    font-family:'Bricolage Grotesque', sans-serif;
+    font-size:26px; font-weight:700; margin:0; color:var(--navy-dark);
+    letter-spacing:-0.3px;
+  }
+  .brand p{
+    margin:2px 0 0; font-size:12.5px; color:var(--ink-soft);
+    font-family:'IBM Plex Mono', monospace; letter-spacing:0.5px;
+  }
+
+  .stats{ display:flex; gap:10px; flex-wrap:wrap; }
+  .stat-chip{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:8px 14px;
+    min-width:92px;
+    box-shadow:var(--shadow);
+  }
+  .stat-chip .num{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:19px; font-weight:600; color:var(--navy-dark); line-height:1.1;
+  }
+  .stat-chip .lbl{ font-size:10.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.6px; margin-top:2px;}
+
+  /* ---------- NAV TABS (parcel tag style) ---------- */
+  .nav-tags{
+    display:flex; gap:10px; margin-bottom:22px; flex-wrap:wrap;
+  }
+  .tag-btn{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px; font-weight:600;
+    background:var(--card-alt);
+    border:1.5px dashed var(--line-strong);
+    color:var(--ink-soft);
+    padding:10px 18px 10px 26px;
+    border-radius:6px;
+    cursor:pointer;
+    position:relative;
+    transition:all .15s ease;
+    letter-spacing:0.2px;
+  }
+  .tag-btn::before{
+    content:'';
+    position:absolute; left:10px; top:50%; transform:translateY(-50%);
+    width:7px; height:7px; border-radius:50%;
+    background:var(--paper);
+    border:1.5px dashed var(--line-strong);
+  }
+  .tag-btn:hover{ border-color:var(--navy); color:var(--navy-dark); }
+  .tag-btn.active{
+    background:var(--navy); border-style:solid; border-color:var(--navy);
+    color:#fff;
+  }
+  .tag-btn.active::before{ background:var(--navy); border-color:#fff; }
+
+  /* ---------- PANELS ---------- */
+  .panel{ display:none; animation:fadeIn .25s ease; }
+  .panel.active{ display:block; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+
+  .grid-2{ display:grid; grid-template-columns:1.3fr 1fr; gap:22px; align-items:start; }
+  @media (max-width:880px){ .grid-2{ grid-template-columns:1fr; } }
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:22px 24px;
+    box-shadow:var(--shadow);
+  }
+  .card h2{
+    font-family:'Bricolage Grotesque', sans-serif;
+    font-size:17px; margin:0 0 18px; color:var(--navy-dark);
+    display:flex; align-items:center; gap:8px;
+  }
+  .card h2 .num-badge{
+    font-family:'IBM Plex Mono', monospace;
+    background:var(--kraft-light); color:var(--kraft-dark);
+    font-size:11px; padding:2px 7px; border-radius:4px; font-weight:700;
+  }
+
+  .field-row{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+  @media (max-width:560px){ .field-row{ grid-template-columns:1fr; } }
+  .field{ display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+  .field label{ font-size:12px; font-weight:600; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.4px; }
+  .field input, .field select, .field textarea{
+    font-family:'Inter', sans-serif;
+    font-size:14.5px;
+    padding:10px 12px;
+    border:1px solid var(--line-strong);
+    border-radius:7px;
+    background:#fff;
+    color:var(--ink);
+    outline:none;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{
+    border-color:var(--navy);
+    box-shadow:0 0 0 3px rgba(31,59,87,0.12);
+  }
+  .field textarea{ resize:vertical; min-height:50px; }
+
+  .type-toggle{ display:flex; gap:10px; }
+  .type-opt{
+    flex:1; text-align:center; padding:10px; border:1.5px solid var(--line-strong);
+    border-radius:7px; cursor:pointer; font-size:13.5px; font-weight:600; color:var(--ink-soft);
+    transition:all .15s ease;
+  }
+  .type-opt.sel{ border-color:var(--navy); background:var(--navy); color:#fff; }
+
+  .pay-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:6px;}
+  @media (max-width:560px){ .pay-grid{ grid-template-columns:1fr; } }
+  .pay-opt{
+    border:1.5px solid var(--line-strong); border-radius:7px; padding:10px 12px;
+    cursor:pointer; font-size:13px; font-weight:600; color:var(--ink);
+    display:flex; align-items:center; gap:8px; transition:all .15s ease;
+  }
+  .pay-opt .dot{ width:14px; height:14px; border-radius:50%; border:2px solid var(--line-strong); flex-shrink:0; position:relative; }
+  .pay-opt.sel{ border-color:var(--kraft); background:var(--kraft-light); }
+  .pay-opt.sel .dot{ border-color:var(--kraft); }
+  .pay-opt.sel .dot::after{ content:''; position:absolute; inset:2px; border-radius:50%; background:var(--kraft); }
+
+  .charge-strip{
+    margin-top:16px; padding:14px 16px; background:var(--card-alt);
+    border:1px dashed var(--line-strong); border-radius:8px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .charge-strip .lbl{ font-size:12.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.4px; }
+  .charge-strip .amt{ font-family:'IBM Plex Mono', monospace; font-size:22px; font-weight:700; color:var(--kraft-dark); }
+
+  .btn{
+    font-family:'Inter', sans-serif; font-weight:600; font-size:14.5px;
+    padding:12px 20px; border-radius:8px; border:none; cursor:pointer;
+    transition:transform .1s ease, background .15s ease;
+  }
+  .btn:active{ transform:scale(0.98); }
+  .btn-primary{ background:var(--navy); color:#fff; width:100%; margin-top:18px; }
+  .btn-primary:hover{ background:var(--navy-dark); }
+  .btn-outline{ background:transparent; border:1.5px solid var(--line-strong); color:var(--ink); }
+  .btn-outline:hover{ border-color:var(--navy); color:var(--navy-dark); }
+  .btn-kraft{ background:var(--kraft); color:#fff; }
+  .btn-kraft:hover{ background:var(--kraft-dark); }
+  .btn-sm{ padding:8px 14px; font-size:13px; }
+
+  /* ---------- PARCEL TAG (signature element) ---------- */
+  .parcel-tag{
+    position:relative;
+    background:var(--card);
+    border:2px dashed var(--line-strong);
+    border-radius:8px;
+    padding:22px 22px 22px 30px;
+    margin-left:6px;
+  }
+  .parcel-tag::before{
+    content:'';
+    position:absolute; left:-11px; top:26px;
+    width:20px; height:20px; border-radius:50%;
+    background:var(--paper);
+    border:2px dashed var(--line-strong);
+  }
+  .parcel-tag .tag-id{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:24px; font-weight:700; color:var(--navy-dark);
+    letter-spacing:1px;
+  }
+  .parcel-tag .tag-sub{ font-size:12px; color:var(--ink-soft); margin-top:2px; }
+  .barcode{
+    height:34px; margin:14px 0 16px;
+    background:repeating-linear-gradient(90deg,
+      var(--ink) 0px 2px, transparent 2px 5px,
+      var(--ink) 5px 6px, transparent 6px 10px,
+      var(--ink) 10px 13px, transparent 13px 15px,
+      var(--ink) 15px 16px, transparent 16px 21px,
+      var(--ink) 21px 24px, transparent 24px 26px,
+      var(--ink) 26px 27px, transparent 27px 32px,
+      var(--ink) 32px 35px, transparent 35px 37px,
+      var(--ink) 37px 38px, transparent 38px 43px,
+      var(--ink) 43px 46px, transparent 46px 48px);
+    background-size:48px 100%;
+    opacity:0.85;
+  }
+  .tag-details{ font-size:13.5px; line-height:1.9; }
+  .tag-details .row{ display:flex; justify-content:space-between; gap:10px; padding:5px 0; border-bottom:1px dotted var(--line); }
+  .tag-details .row:last-child{ border-bottom:none; }
+  .tag-details .k{ color:var(--ink-soft); }
+  .tag-details .v{ font-weight:600; text-align:right; }
+
+  .badge{
+    display:inline-block; font-size:11px; font-weight:700; letter-spacing:0.4px;
+    padding:3px 10px; border-radius:20px; text-transform:uppercase;
+  }
+  .badge-booked{ background:var(--stamp-amber-bg); color:var(--stamp-amber); }
+  .badge-transit{ background:#DDE6F1; color:var(--navy); }
+  .badge-out{ background:#EADFF6; color:#6B3FA0; }
+  .badge-delivered{ background:var(--stamp-green-bg); color:var(--stamp-green); }
+  .badge-paid{ background:var(--stamp-green-bg); color:var(--stamp-green); }
+  .badge-pending{ background:var(--stamp-red-bg); color:var(--stamp-red); }
+
+  .empty-note{
+    text-align:center; padding:40px 20px; color:var(--ink-soft); font-size:14px;
+  }
+  .empty-note i{ font-style:normal; font-family:'IBM Plex Mono', monospace; }
+
+  /* ---------- TRACK PANEL ---------- */
+  .track-search{ display:flex; gap:10px; margin-bottom:20px; }
+  .track-search input{ flex:1; }
+  .stepper{ display:flex; align-items:center; margin:20px 0 4px; }
+  .step{ flex:1; text-align:center; position:relative; }
+  .step .dot{
+    width:16px; height:16px; border-radius:50%; margin:0 auto 6px;
+    background:var(--card); border:2.5px solid var(--line-strong);
+  }
+  .step.done .dot{ background:var(--navy); border-color:var(--navy); }
+  .step .lbl{ font-size:11px; color:var(--ink-soft); font-weight:600; }
+  .step.done .lbl{ color:var(--navy-dark); }
+  .step::before{
+    content:''; position:absolute; top:7px; left:-50%; width:100%; height:2px;
+    background:var(--line-strong); z-index:-1;
+  }
+  .step:first-child::before{ display:none; }
+  .step.done::before{ background:var(--navy); }
+
+  /* ---------- MANIFEST TABLE ---------- */
+  .manifest-controls{ display:flex; gap:10px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+  .manifest-controls select{ padding:9px 12px; border-radius:7px; border:1px solid var(--line-strong); font-family:'Inter'; font-size:13.5px; background:#fff; }
+  table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  thead th{
+    text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.5px;
+    color:var(--ink-soft); padding:8px 10px; border-bottom:2px solid var(--line-strong);
+  }
+  tbody td{ padding:11px 10px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  tbody tr:hover{ background:var(--card-alt); }
+  .id-mono{ font-family:'IBM Plex Mono', monospace; font-weight:600; color:var(--navy-dark); }
+  .row-actions{ display:flex; gap:6px; }
+
+  /* ---------- MODAL ---------- */
+  .modal-backdrop{
+    display:none; position:fixed; inset:0; background:rgba(30,25,10,0.35);
+    align-items:center; justify-content:center; z-index:50; padding:16px;
+  }
+  .modal-backdrop.open{ display:flex; }
+  .modal{
+    background:var(--card); border-radius:12px; padding:24px; width:100%; max-width:420px;
+    box-shadow:0 10px 40px rgba(0,0,0,0.2);
+  }
+  .modal h3{ font-family:'Bricolage Grotesque'; margin:0 0 16px; color:var(--navy-dark); font-size:17px; }
+  .modal-close-row{ display:flex; gap:10px; margin-top:18px; }
+  .modal-close-row .btn{ flex:1; margin-top:0; }
+
+  .footnote{ text-align:center; color:var(--ink-soft); font-size:12px; margin-top:36px; font-family:'IBM Plex Mono', monospace; }
+
+  @media (max-width:760px){
+    .brand h1{ font-size:21px; }
+    .stat-chip{ min-width:78px; padding:7px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="postmark"><h3>SR</h3></div>
+      <div>
+        <h1>Smart Courier System</h1>
+        <p>PARCEL BOOKING &amp; TRACKING COUNTER</p>
+      </div>
+    </div>
+    <div class="stats" id="statsRow"></div>
+  </div>
+
+  <div class="nav-tags">
+    <button class="tag-btn active" data-panel="book">Book Parcel</button>
+    <button class="tag-btn" data-panel="track">Track Parcel</button>
+    <button class="tag-btn" data-panel="manifest">Manifest</button>
+  </div>
+
+  <!-- ===================== BOOK PANEL ===================== -->
+  <div class="panel active" id="panel-book">
+    <div class="grid-2">
+      <div class="card">
+        <h2>Sender &amp; receiver details</h2>
+        <div class="field-row">
+          <div class="field"><label>Sender name</label><input id="senderName" placeholder="e.g. Arun Kumar"></div>
+          <div class="field"><label>Sender mobile</label><input id="senderMobile" placeholder="10-digit number"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Receiver name</label><input id="receiverName" placeholder="e.g. Priya Raman"></div>
+          <div class="field"><label>Receiver mobile</label><input id="receiverMobile" placeholder="10-digit number"></div>
+        </div>
+        <div class="field"><label>Receiver full address</label><textarea id="receiverAddress" placeholder="Door no, street, city, pincode"></textarea></div>
+        <div class="field-row">
+          <div class="field"><label>Product name</label><input id="productName" placeholder="e.g. Books"></div>
+          <div class="field"><label>Parcel description</label><input id="parcelDesc" placeholder="e.g. Clothes, electronics"></div>
+        </div>
+
+        <div class="field">
+          <label>Courier type</label>
+          <div class="type-toggle">
+            <div class="type-opt sel" data-type="normal" onclick="selectType('normal')">Normal</div>
+            <div class="type-opt" data-type="express" onclick="selectType('express')">Express</div>
+          </div>
+        </div>
+        <div class="field"><label>Weight (kg)</label><input id="weight" type="number" min="0.1" step="0.1" value="1" oninput="updateCharge()"></div>
+
+        <div class="field">
+          <label>Payment method</label>
+          <div class="pay-grid">
+            <div class="pay-opt sel" data-pay="CASH" onclick="selectPay('CASH','PAID')"><span class="dot"></span>Cash</div>
+            <div class="pay-opt" data-pay="UPI" onclick="selectPay('UPI (GPay/PhonePe)','PAID')"><span class="dot"></span>UPI</div>
+            <div class="pay-opt" data-pay="NETBANK" onclick="selectPay('NET BANKING','PAID')"><span class="dot"></span>Net banking</div>
+            <div class="pay-opt" data-pay="POD" onclick="selectPay('PAY ON DELIVERY','PENDING')"><span class="dot"></span>Pay on delivery</div>
+          </div>
+        </div>
+
+        <div class="charge-strip">
+          <span class="lbl">Total delivery charge</span>
+          <span class="amt" id="chargeAmt">₹70</span>
+        </div>
+
+        <button class="btn btn-primary" onclick="bookCourier()">Stamp &amp; book parcel</button>
+      </div>
+
+      <div id="receiptSlot">
+        <div class="card">
+          <h2>Booking receipt</h2>
+          <div class="empty-note">Fill the form and book a parcel — the tracking tag and receipt appear here.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== TRACK PANEL ===================== -->
+  <div class="panel" id="panel-track">
+    <div class="card">
+      <h2>Track a parcel</h2>
+      <div class="track-search">
+        <input id="trackInput" placeholder="Enter tracking ID, e.g. COUR-1001" onkeydown="if(event.key==='Enter')trackParcel()">
+        <button class="btn btn-kraft" onclick="trackParcel()">Track</button>
+      </div>
+      <div id="trackResult"></div>
+    </div>
+  </div>
+
+  <!-- ===================== MANIFEST PANEL ===================== -->
+  <div class="panel" id="panel-manifest">
+    <div class="card">
+      <h2>All shipments <span class="num-badge" id="manifestCount">0</span></h2>
+      <div class="manifest-controls">
+        <select id="statusFilter" onchange="renderManifest()">
+          <option value="ALL">All statuses</option>
+          <option value="BOOKED">Booked</option>
+          <option value="IN-TRANSIT">In-transit</option>
+          <option value="OUT FOR DELIVERY">Out for delivery</option>
+          <option value="DELIVERED">Delivered</option>
+        </select>
+      </div>
+      <div style="overflow-x:auto;">
+        <table id="manifestTable">
+          <thead>
+            <tr><th>Tracking ID</th><th>Receiver</th><th>Type</th><th>Status</th><th>Payment</th><th>Amount</th><th></th></tr>
+          </thead>
+          <tbody id="manifestBody"></tbody>
+        </table>
+      </div>
+      <div id="manifestEmpty" class="empty-note" style="display:none;">No parcels booked yet — head to <i>Book Parcel</i> to create one.</div>
+    </div>
+  </div>
+
+  <div class="footnote">SESSION DATA · RESETS ON PAGE RELOAD</div>
+</div>
+
+<!-- ===================== UPDATE MODAL ===================== -->
+<div class="modal-backdrop" id="updateModal">
+  <div class="modal">
+    <h3 id="modalTitle">Update shipment</h3>
+    <div class="field">
+      <label>New status</label>
+      <select id="modalStatus">
+        <option value="BOOKED">Booked</option>
+        <option value="IN-TRANSIT">In-transit</option>
+        <option value="OUT FOR DELIVERY">Out for delivery</option>
+        <option value="DELIVERED">Delivered</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Payment status</label>
+      <div style="font-size:13.5px; padding:10px 0;" id="modalPayInfo"></div>
+      <button class="btn btn-outline btn-sm" onclick="markPaidInModal()">Mark as paid</button>
+    </div>
+    <div class="modal-close-row">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" style="margin-top:0;" onclick="applyModalUpdate()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---------- STATE (mirrors the Python courier dict + tracking_counter) ----------
+  let couriers = {};
+  let trackingCounter = 1000;
+  let selectedType = "normal";
+  let selectedPayMode = "CASH";
+  let selectedPayStatus = "PAID";
+  let modalTargetId = null;
+
+  function generateTrackingId(){
+    trackingCounter += 1;
+    return "COUR-" + trackingCounter;
+  }
+
+  function calculateCharge(weight, courierType){
+    const base = courierType === "normal" ? 50 : 150;
+    const perKg = courierType === "normal" ? 20 : 50;
+    return Math.floor(base + (weight * perKg));
+  }
+
+  function selectType(t){
+    selectedType = t;
+    document.querySelectorAll('.type-opt').forEach(el=>el.classList.toggle('sel', el.dataset.type===t));
+    updateCharge();
+  }
+
+  function selectPay(mode, status){
+    selectedPayMode = mode; selectedPayStatus = status;
+    document.querySelectorAll('.pay-opt').forEach(el=>{
+      const map = {CASH:'CASH', 'UPI (GPay/PhonePe)':'UPI', 'NET BANKING':'NETBANK', 'PAY ON DELIVERY':'POD'};
+      el.classList.toggle('sel', map[mode]===el.dataset.pay);
+    });
+  }
+
+  function updateCharge(){
+    const w = parseFloat(document.getElementById('weight').value) || 0;
+    const charge = calculateCharge(w, selectedType);
+    document.getElementById('chargeAmt').textContent = '₹' + charge;
+  }
+
+  function statusBadgeClass(status){
+    if(status==='BOOKED') return 'badge-booked';
+    if(status==='IN-TRANSIT') return 'badge-transit';
+    if(status==='OUT FOR DELIVERY') return 'badge-out';
+    if(status==='DELIVERED') return 'badge-delivered';
+    return 'badge-booked';
+  }
+  function payBadgeClass(payStatus){
+    return payStatus.startsWith('PAID') ? 'badge-paid' : 'badge-pending';
+  }
+
+  function bookCourier(){
+    const senderName = document.getElementById('senderName').value.trim();
+    const senderMobile = document.getElementById('senderMobile').value.trim();
+    const receiverName = document.getElementById('receiverName').value.trim();
+    const receiverMobile = document.getElementById('receiverMobile').value.trim();
+    const receiverAddress = document.getElementById('receiverAddress').value.trim();
+    const productName = document.getElementById('productName').value.trim();
+    const parcelDesc = document.getElementById('parcelDesc').value.trim();
+    const weight = parseFloat(document.getElementById('weight').value);
+
+    if(!senderName || !receiverName || !receiverMobile || !receiverAddress || !productName){
+      alert('Please fill in sender name, receiver name, receiver mobile, address, and product name.');
+      return;
+    }
+    if(!weight || weight <= 0){
+      alert('Enter a weight greater than 0.');
+      return;
+    }
+
+    const trackingId = generateTrackingId();
+    const now = new Date();
+    const bookingDate = now.toISOString().slice(0,10);
+    const bookingTime = now.toTimeString().slice(0,8);
+    const charge = calculateCharge(weight, selectedType);
+    const otp = Math.floor(1000 + Math.random()*9000);
+
+    couriers[trackingId] = {
+      sender: senderName, senderMobile, receiver: receiverName, receiverMobile,
+      receiverAddress, product: productName, description: parcelDesc,
+      type: selectedType.toUpperCase(), weight: weight + ' Kg',
+      bookingDate, bookingTime, status: 'BOOKED',
+      charge, paymentMode: selectedPayMode, paymentStatus: selectedPayStatus, otp
+    };
+
+    renderReceipt(trackingId);
+    renderManifest();
+    renderStats();
+
+    document.getElementById('senderName').value='';
+    document.getElementById('senderMobile').value='';
+    document.getElementById('receiverName').value='';
+    document.getElementById('receiverMobile').value='';
+    document.getElementById('receiverAddress').value='';
+    document.getElementById('productName').value='';
+    document.getElementById('parcelDesc').value='';
+    document.getElementById('weight').value=1;
+    updateCharge();
+  }
+
+  function renderReceipt(trackingId){
+    const c = couriers[trackingId];
+    document.getElementById('receiptSlot').innerHTML = `
+      <div class="parcel-tag">
+        <div class="tag-id">${trackingId}</div>
+        <div class="tag-sub">Booked ${c.bookingDate} · ${c.bookingTime}</div>
+        <div class="barcode"></div>
+        <div class="tag-details">
+          <div class="row"><span class="k">Sender</span><span class="v">${c.sender} (${c.senderMobile||'—'})</span></div>
+          <div class="row"><span class="k">Receiver</span><span class="v">${c.receiver} (${c.receiverMobile})</span></div>
+          <div class="row"><span class="k">Product</span><span class="v">${c.product} · ${c.type}</span></div>
+          <div class="row"><span class="k">Weight</span><span class="v">${c.weight}</span></div>
+          <div class="row"><span class="k">Amount</span><span class="v">₹${c.charge}</span></div>
+          <div class="row"><span class="k">Payment</span><span class="v">${c.paymentMode}</span></div>
+          <div class="row"><span class="k">Secure OTP</span><span class="v">${c.otp}</span></div>
+        </div>
+      </div>`;
+  }
+
+  function trackParcel(){
+    const idRaw = document.getElementById('trackInput').value.trim().toUpperCase();
+    const box = document.getElementById('trackResult');
+    if(!idRaw){ box.innerHTML=''; return; }
+    const c = couriers[idRaw];
+    if(!c){
+      box.innerHTML = `<div class="empty-note">No parcel found for <i>${idRaw}</i>. Check the tracking ID and try again.</div>`;
+      return;
+    }
+    const stages = ['BOOKED','IN-TRANSIT','OUT FOR DELIVERY','DELIVERED'];
+    const currentIdx = stages.indexOf(c.status);
+    box.innerHTML = `
+      <div class="parcel-tag" style="margin-top:14px;">
+        <div class="tag-id">${idRaw}</div>
+        <div class="tag-sub">${c.product} · ${c.type} · ${c.weight}</div>
+        <div class="stepper">
+          ${stages.map((s,i)=>`<div class="step ${i<=currentIdx?'done':''}"><div class="dot"></div><div class="lbl">${s.replace('-',' ').toLowerCase().replace(/\\b\\w/g,ch=>ch.toUpperCase())}</div></div>`).join('')}
+        </div>
+        <div class="barcode"></div>
+        <div class="tag-details">
+          <div class="row"><span class="k">Sender</span><span class="v">${c.sender} (${c.senderMobile||'—'})</span></div>
+          <div class="row"><span class="k">Receiver</span><span class="v">${c.receiver} (${c.receiverMobile})</span></div>
+          <div class="row"><span class="k">Address</span><span class="v" style="max-width:60%;">${c.receiverAddress}</span></div>
+          <div class="row"><span class="k">Status</span><span class="v"><span class="badge ${statusBadgeClass(c.status)}">${c.status}</span></span></div>
+          <div class="row"><span class="k">Payment</span><span class="v"><span class="badge ${payBadgeClass(c.paymentStatus)}">${c.paymentStatus}</span></span></div>
+          <div class="row"><span class="k">Amount</span><span class="v">₹${c.charge}</span></div>
+        </div>
+      </div>`;
+  }
+
+  function renderStats(){
+    const ids = Object.keys(couriers);
+    const total = ids.length;
+    const pending = ids.filter(id=>couriers[id].paymentStatus==='PENDING').length;
+    const delivered = ids.filter(id=>couriers[id].status==='DELIVERED').length;
+    document.getElementById('statsRow').innerHTML = `
+      <div class="stat-chip"><div class="num">${total}</div><div class="lbl">Total</div></div>
+      <div class="stat-chip"><div class="num">${pending}</div><div class="lbl">Pay pending</div></div>
+      <div class="stat-chip"><div class="num">${delivered}</div><div class="lbl">Delivered</div></div>`;
+  }
+
+  function renderManifest(){
+    const filter = document.getElementById('statusFilter').value;
+    const body = document.getElementById('manifestBody');
+    const ids = Object.keys(couriers).filter(id => filter==='ALL' || couriers[id].status===filter);
+    document.getElementById('manifestCount').textContent = ids.length;
+    document.getElementById('manifestEmpty').style.display = ids.length ? 'none' : 'block';
+    body.innerHTML = ids.map(id=>{
+      const c = couriers[id];
+      return `<tr>
+        <td class="id-mono">${id}</td>
+        <td>${c.receiver}</td>
+        <td>${c.type}</td>
+        <td><span class="badge ${statusBadgeClass(c.status)}">${c.status}</span></td>
+        <td><span class="badge ${payBadgeClass(c.paymentStatus)}">${c.paymentStatus}</span></td>
+        <td>₹${c.charge}</td>
+        <td class="row-actions"><button class="btn btn-outline btn-sm" onclick="openModal('${id}')">Update</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function openModal(id){
+    modalTargetId = id;
+    const c = couriers[id];
+    document.getElementById('modalTitle').textContent = 'Update ' + id;
+    document.getElementById('modalStatus').value = c.status;
+    document.getElementById('modalPayInfo').innerHTML = `<span class="badge ${payBadgeClass(c.paymentStatus)}">${c.paymentStatus}</span>`;
+    document.getElementById('updateModal').classList.add('open');
+  }
+  function closeModal(){
+    document.getElementById('updateModal').classList.remove('open');
+    modalTargetId = null;
+  }
+  function markPaidInModal(){
+    if(!modalTargetId) return;
+    couriers[modalTargetId].paymentStatus = 'PAID';
+    document.getElementById('modalPayInfo').innerHTML = `<span class="badge ${payBadgeClass('PAID')}">PAID</span>`;
+  }
+  function applyModalUpdate(){
+    if(!modalTargetId) return;
+    const c = couriers[modalTargetId];
+    const newStatus = document.getElementById('modalStatus').value;
+    c.status = newStatus;
+    if(newStatus === 'DELIVERED' && c.paymentStatus === 'PENDING'){
+      c.paymentStatus = 'PAID (Collected on delivery)';
+    }
+    renderManifest();
+    renderStats();
+    closeModal();
+  }
+
+  // ---------- NAV ----------
+  document.querySelectorAll('.tag-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tag-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+      document.getElementById('panel-' + btn.dataset.panel).classList.add('active');
+    });
+  });
+
+  // ---------- INIT ----------
+  updateCharge();
+  renderStats();
+  renderManifest();
+</script>
+</body>
+</html>
